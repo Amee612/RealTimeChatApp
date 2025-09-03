@@ -239,7 +239,7 @@ import { toast } from "react-toastify";
 import { apiClient } from "../../lib/api-client";
 import { LOGIN_ROUTE, SIGNUP_ROUTE } from "../../utils/constants";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { storage } from "../../lib/firebase"; // adjust if the path is different
+import { auth } from "../../lib/firebase"; // adjust if the path is different
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -291,7 +291,7 @@ const AuthPage = () => {
   event.preventDefault();
   if (validateLogin()) {
     try {
-      const userCredential = await signInWithEmailAndPassword(storage, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       console.log("User logged in:", user);
 
@@ -363,7 +363,7 @@ const AuthPage = () => {
     console.log("validation successful");
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(storage, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       console.log("User signed up:", user);
 
