@@ -19,7 +19,7 @@ const databaseURL = process.env.DATABASE_URL;
 // Allowed origins for CORS (add your dev and prod URLs)
 const allowedOrigins = [
   "http://localhost:3000",
-  process.env.ORIGIN || "*",
+   "*",
 ];
 
 // CORS middleware for Express
