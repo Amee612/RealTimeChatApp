@@ -5,9 +5,14 @@ import Group from "./models/GroupModel.js";
 const setupSocket = (server) => {
   console.log("Socket.io server started");
 
+  const allowedOrigins = [
+    "http://localhost:3000",
+    process.env.ORIGIN || "https://real-time-chat-qnuvwffof-amees-projects-de58e287.vercel.app",
+  ];
+
   const io = new SocketIOServer(server, {
     cors: {
-      origin: [process.env.ORIGIN],
+      origin: allowedOrigins,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
       credentials: true,
     },
@@ -28,16 +33,12 @@ const setupSocket = (server) => {
   const sendMessage = async (message) => {
     console.log(userSocketMap);
 
-    const senderSocketId = userSocketMap.get(message.sender);
-    const recipientSocketId = userSocketMap.get(message.recipient);
-    // const recipientSocketId = message.recipient;
+    const senderSocketId = userSocketMap.get(message.sender.toString());
+    const recipientSocketId = userSocketMap.get(message.recipient.toString());
 
     console.log(
       `Sending message to ${recipientSocketId} from ${senderSocketId}`
     );
-
-    // console.log("recipient: ", message.recipient);
-    // console.log("recipientId: ", recipientSocketId);
 
     const createdMessage = await Message.create(message);
 
@@ -54,9 +55,8 @@ const setupSocket = (server) => {
   };
 
   const sendFriendRequest = async (friendRequest) => {
-    // console.log(friendRequest);
-    const recipientSocketId = userSocketMap.get(friendRequest.target._id);
-    const senderSocketId = userSocketMap.get(friendRequest.friendRequest.id);
+    const recipientSocketId = userSocketMap.get(friendRequest.target._id.toString());
+    const senderSocketId = userSocketMap.get(friendRequest.friendRequest.id.toString());
 
     console.log(
       `Sending friend request to ${recipientSocketId} from ${senderSocketId}`
@@ -70,9 +70,8 @@ const setupSocket = (server) => {
   };
 
   const sendGroupMessage = async (message) => {
-    // console.log("inside send group message");
     const { groupId, sender, content, messageType, fileUrl } = message;
-    // console.log("msg content: " + content);
+
     const createdMessage = await Message.create({
       sender,
       recipient: null,
@@ -81,28 +80,28 @@ const setupSocket = (server) => {
       timestamp: new Date(),
       fileUrl,
     });
+
     const messageData = await Message.findById(createdMessage._id)
       .populate("sender", "id email firstName lastName image color")
       .exec();
-    // console.log("messageData: " + messageData);
-    // Select only the fields you want to store in the lastMessage
+
     const lastMessageData = {
       content: messageData.content,
       messageType: messageData.messageType,
       timestamp: messageData.timestamp,
       fileUrl: messageData.fileUrl,
     };
-    // Update the group with the new message and store only selected fields in lastMessage
+
     await Group.findByIdAndUpdate(groupId, {
-      $push: { messages: createdMessage._id }, // Push the message ID to the messages array
-      $set: { lastMessage: lastMessageData }, // Store only selected fields in lastMessage
+      $push: { messages: createdMessage._id },
+      $set: { lastMessage: lastMessageData },
     });
+
     const group = await Group.findById(groupId).populate("members");
     const finalData = { ...messageData._doc, groupId: group._id, group: group };
-    // console.log("finalData: " + finalData);
+
     if (group && group.members) {
       group.members.forEach((member) => {
-        // console.log("member: " + member);
         const memberSocketId = userSocketMap.get(member._id.toString());
         if (memberSocketId) {
           io.to(memberSocketId).emit("receiveGroupMessage", finalData);
@@ -110,11 +109,12 @@ const setupSocket = (server) => {
       });
     }
   };
+
   const createGroup = async (group) => {
     console.log(group);
     if (group && group.members) {
       group.members.forEach((member) => {
-        const memberSocketId = userSocketMap.get(member);
+        const memberSocketId = userSocketMap.get(member.toString());
         if (memberSocketId) {
           io.to(memberSocketId).emit("receiveGroupCreation", group);
         }
@@ -127,7 +127,7 @@ const setupSocket = (server) => {
     const userId = socket.handshake.query.userId;
 
     if (userId) {
-      userSocketMap.set(userId, socket.id);
+      userSocketMap.set(userId.toString(), socket.id);
       console.log(`User connected: ${userId} with socket id: ${socket.id}`);
     } else {
       console.log("User ID not provided during connection.");
