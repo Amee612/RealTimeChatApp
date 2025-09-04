@@ -59,6 +59,7 @@ const ProfileLandingPage = () => {
             lastName,
             color: selectedColor,
             image,
+            profileSetup: true,
           },
           {
             withCredentials: true,
